@@ -252,7 +252,7 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 					relCfg := cfg.Relations[relation]
 					if relCfg.Type == "one_to_one" {
 						if fk, ok := relCfg.Params["foreign_key"]; ok {
-							relTargetCfg := CreateTableConfig(relCfg.Target)
+							relTargetCfg := CreateTableConfig(cfg.Dir, relCfg.Target)
 
 							colCfg := relTargetCfg.TableColumns[colName]
 
