@@ -33,9 +33,10 @@ type TableConfig struct {
 	TableColumns    map[string]*TableColumnConfig
 	TableColumnsArr []string
 	Relations       map[string]*TableRelationConfig
+	Dir             string
 }
 
-func NewTableConfig(tableName string, PK string) *TableConfig {
+func NewTableConfig(tableName string, PK string, dir string) *TableConfig {
 
 	return &TableConfig{
 		TableName:       tableName,
@@ -43,6 +44,7 @@ func NewTableConfig(tableName string, PK string) *TableConfig {
 		TableColumns:    make(map[string]*TableColumnConfig),
 		TableColumnsArr: []string{},
 		Relations:       make(map[string]*TableRelationConfig),
+		Dir:             dir,
 	}
 }
 
@@ -68,7 +70,7 @@ func CreateTableConfig(dir string, tableName string) *TableConfig {
 
 	//fmt.Println(columns)
 
-	newConfig := NewTableConfig(tbl.(string), pk.(string))
+	newConfig := NewTableConfig(tbl.(string), pk.(string), dir)
 
 	//columnConfigs := []TableColumnConfig{}
 
