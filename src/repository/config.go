@@ -50,10 +50,10 @@ func (cfg *TableConfig) dump() {
 	// TODO: implement
 }
 
-func CreateTableConfig(tableName string) *TableConfig {
+func CreateTableConfig(dir string, tableName string) *TableConfig {
 	viper.SetConfigName(tableName)
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("tracker/conf/db")
+	viper.AddConfigPath(dir)
 
 	err := viper.ReadInConfig()
 	if err != nil { // Handle errors reading the config file
