@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/alex-shkadov/repository/src/repository/queryBuilder"
 	"reflect"
 )
 
@@ -19,11 +18,12 @@ type AbstractRepo struct {
 	db          *sql.DB
 	config      *TableConfig
 	reflectType reflect.Type
-	identityMap *identityMap
+	//identityMap *identityMap
+	qb *QueryBuilder
 }
 
-func NewAbstractRepo(db *sql.DB, config *TableConfig, reflectType reflect.Type, work *identityMap) *AbstractRepo {
-	return &AbstractRepo{db: db, config: config, reflectType: reflectType, identityMap: work}
+func NewAbstractRepo(db *sql.DB, config *TableConfig, reflectType reflect.Type) *AbstractRepo {
+	return &AbstractRepo{db: db, config: config, reflectType: reflectType, qb: &QueryBuilder{}}
 }
 
 type RowScanner interface {
@@ -33,7 +33,7 @@ type RowScanner interface {
 func (a *AbstractRepo) Update(packet interface{}) error {
 
 	//logger.Debug(fmt.Sprint("Update object of type ", reflect.TypeOf(packet), ": ", packet))
-	sql := queryBuilder.Update(a.config, packet)
+	sql := a.qb.Update(a.config, packet)
 	//logger.DebugSQL(sql)
 
 	saveResult := a.db.QueryRow(sql)
@@ -89,7 +89,7 @@ func (a *AbstractRepo) Save(packet interface{}) (int64, error) {
 	}
 
 	//logger.Debug(fmt.Sprint("Insert object of type ", reflect.TypeOf(packet), ": ", packet))
-	sql := queryBuilder.Insert(a.config, packet)
+	sql := a.qb.Insert(a.config, packet)
 	//logger.DebugSQL(sql)
 
 	saveResult := a.db.QueryRow(sql)
@@ -151,7 +151,7 @@ func (a *AbstractRepo) Save(packet interface{}) (int64, error) {
 
 func (a *AbstractRepo) Find(id int64) (interface{}, error) {
 
-	sql := queryBuilder.SelectById(a.config, a.reflectType, id)
+	sql := a.qb.SelectById(a.config, a.reflectType, id)
 	//logger.DebugSQL(sql)
 
 	fetchResult := a.db.QueryRow(sql)
@@ -169,7 +169,7 @@ func (a *AbstractRepo) Find(id int64) (interface{}, error) {
 }
 
 func (a *AbstractRepo) FindOneBy(filters map[string]interface{}, asc bool) (interface{}, error) {
-	sql := queryBuilder.SelectBy(a.config, a.reflectType, filters, 1, 0, asc)
+	sql := a.qb.SelectBy(a.config, a.reflectType, filters, 1, 0, asc)
 
 	//logger.DebugSQL(sql)
 
@@ -190,7 +190,7 @@ func (a *AbstractRepo) FindOneBy(filters map[string]interface{}, asc bool) (inte
 }
 
 func (a *AbstractRepo) FindBy(filters map[string]interface{}, asc bool) ([]interface{}, error) {
-	sql := queryBuilder.SelectBy(a.config, a.reflectType, filters, 0, 0, asc)
+	sql := a.qb.SelectBy(a.config, a.reflectType, filters, 0, 0, asc)
 
 	//logger.DebugSQL(sql)
 

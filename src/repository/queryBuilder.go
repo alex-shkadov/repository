@@ -1,9 +1,8 @@
-package queryBuilder
+package repository
 
 import (
 	"bitbucket.org/pkg/inflect"
 	"fmt"
-	"github.com/alex-shkadov/repository/src/repository"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,7 +15,10 @@ type INExpression interface {
 	ToString() string
 }
 
-func escapeValueForSQL(typeStr string, value interface{}, nullable bool) string {
+type QueryBuilder struct {
+}
+
+func (qb *QueryBuilder) escapeValueForSQL(typeStr string, value interface{}, nullable bool) string {
 
 	switch typeStr {
 	case "string":
@@ -40,12 +42,12 @@ func escapeValueForSQL(typeStr string, value interface{}, nullable bool) string 
 	return fmt.Sprint(value)
 }
 
-func Update(cfg *repository.TableConfig, object interface{}) string {
+func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 	var tableColumnLabels []string
 	var tableColumnValues []string
 
 	t := reflect.Indirect(reflect.ValueOf(object))
-	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, reflect.TypeOf(object))
+	fields, fieldsNotFound := GetTableColumnMap(cfg, reflect.TypeOf(object))
 
 	updateExpr := []string{}
 
@@ -74,7 +76,7 @@ func Update(cfg *repository.TableConfig, object interface{}) string {
 
 			classFieldValue := t.FieldByName(classField).Interface()
 
-			classFieldValueStr := escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
+			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
 
 			tableColumnValues = append(tableColumnValues, classFieldValueStr)
 
@@ -87,12 +89,12 @@ func Update(cfg *repository.TableConfig, object interface{}) string {
 	return sql
 }
 
-func Insert(cfg *repository.TableConfig, object interface{}) string {
+func (qb *QueryBuilder) Insert(cfg *TableConfig, object interface{}) string {
 	var tableColumnLabels []string
 	var tableColumnValues []string
 
 	t := reflect.Indirect(reflect.ValueOf(object))
-	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, reflect.TypeOf(object))
+	fields, fieldsNotFound := GetTableColumnMap(cfg, reflect.TypeOf(object))
 	for colName, colCfg := range cfg.TableColumns {
 		if colName == "id" {
 			continue
@@ -115,7 +117,7 @@ func Insert(cfg *repository.TableConfig, object interface{}) string {
 
 			classFieldValue := t.FieldByName(classField).Interface()
 
-			classFieldValueStr := escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
+			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
 
 			tableColumnValues = append(tableColumnValues, classFieldValueStr)
 		}
@@ -127,10 +129,10 @@ func Insert(cfg *repository.TableConfig, object interface{}) string {
 	return sql
 }
 
-func SelectById(cfg *repository.TableConfig, t reflect.Type, id interface{}) string {
+func (qb *QueryBuilder) SelectById(cfg *TableConfig, t reflect.Type, id interface{}) string {
 	var tableColumns []string
 
-	fields, notFound := repository.GetTableColumnMap(cfg, t)
+	fields, notFound := GetTableColumnMap(cfg, t)
 	for _, colName := range cfg.TableColumnsArr {
 
 		colNotFound := false
@@ -172,7 +174,7 @@ func (f *F) ToString() string {
 	return strings.Join(strs, ", ")
 }
 
-func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]interface{}, limit int, offset int, asc bool) string {
+func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[string]interface{}, limit int, offset int, asc bool) string {
 	var tableColumns []string
 	var tableFilters []string
 	var tableJoins []string
@@ -184,8 +186,8 @@ func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]in
 	m0 := MAIN_TABLE_ALIAS
 
 	filtersNotEmpty := false
-	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, t)
-	relations, _ := repository.GetTableRelationMap(cfg, t)
+	fields, fieldsNotFound := GetTableColumnMap(cfg, t)
+	relations, _ := GetTableRelationMap(cfg, t)
 
 	for _, colName := range cfg.TableColumnsArr {
 
@@ -217,8 +219,8 @@ func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]in
 						array := arr.Interface().([2]string)
 
 						tableFilters = append(tableFilters, fmt.Sprintf("\""+m0+"\".\""+colName+"\" BETWEEN %s AND %s",
-							escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
-							escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
+							qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
+							qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
 						))
 					} else {
 						panic(fmt.Sprint("Некорректный массив в фильтрах: ", filterValue))
@@ -231,7 +233,7 @@ func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]in
 						str := reflect.ValueOf(filterValue).MethodByName("ToString").Call([]reflect.Value{})
 						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+")")
 					} else {
-						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
+						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
 					}
 
 				}
@@ -250,7 +252,7 @@ func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]in
 					relCfg := cfg.Relations[relation]
 					if relCfg.Type == "one_to_one" {
 						if fk, ok := relCfg.Params["foreign_key"]; ok {
-							relTargetCfg := repository.CreateTableConfig(relCfg.Target)
+							relTargetCfg := CreateTableConfig(relCfg.Target)
 
 							colCfg := relTargetCfg.TableColumns[colName]
 
@@ -264,14 +266,14 @@ func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]in
 									array := arr.Interface().([2]string)
 
 									tableFilters = append(tableFilters, fmt.Sprintf("\""+rel+"\".\""+colName+"\" BETWEEN %s AND %s",
-										escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
-										escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
+										qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
+										qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
 									))
 								} else {
 									panic(fmt.Sprint("Некорректный массив в фильтрах: ", filterValue))
 								}
 							} else {
-								tableFilters = append(tableFilters, "\""+rel+"\".\""+colName+"\" = "+escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
+								tableFilters = append(tableFilters, "\""+rel+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
 							}
 
 							//fmt.Println(tableJoins)
