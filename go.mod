@@ -1,4 +1,4 @@
-module alex-shkadov/repository
+module github.com/alex-shkadov/repository
 
 go 1.17
 
