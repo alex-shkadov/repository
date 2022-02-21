@@ -1,12 +1,11 @@
-package dbHelper
+package repository
 
 import (
-	"alex-shkadov/repository/src/repository/config"
 	"bitbucket.org/pkg/inflect"
 	"reflect"
 )
 
-func GetTableColumnMap(cfg *config.TableConfig, t reflect.Type) (map[string]string, []string) {
+func GetTableColumnMap(cfg *TableConfig, t reflect.Type) (map[string]string, []string) {
 
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -42,7 +41,7 @@ func GetTableColumnMap(cfg *config.TableConfig, t reflect.Type) (map[string]stri
 	return result, notFound
 }
 
-func GetTableRelationMap(cfg *config.TableConfig, t reflect.Type) (map[string]string, []string) {
+func GetTableRelationMap(cfg *TableConfig, t reflect.Type) (map[string]string, []string) {
 
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()

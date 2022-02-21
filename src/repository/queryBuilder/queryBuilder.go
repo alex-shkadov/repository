@@ -1,10 +1,9 @@
 package queryBuilder
 
 import (
-	"alex-shkadov/repository/src/repository/config"
-	"alex-shkadov/repository/src/repository/dbHelper"
 	"bitbucket.org/pkg/inflect"
 	"fmt"
+	"github.com/alex-shkadov/repository/src/repository"
 	"reflect"
 	"strconv"
 	"strings"
@@ -41,12 +40,12 @@ func escapeValueForSQL(typeStr string, value interface{}, nullable bool) string 
 	return fmt.Sprint(value)
 }
 
-func Update(cfg *config.TableConfig, object interface{}) string {
+func Update(cfg *repository.TableConfig, object interface{}) string {
 	var tableColumnLabels []string
 	var tableColumnValues []string
 
 	t := reflect.Indirect(reflect.ValueOf(object))
-	fields, fieldsNotFound := dbHelper.GetTableColumnMap(cfg, reflect.TypeOf(object))
+	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, reflect.TypeOf(object))
 
 	updateExpr := []string{}
 
@@ -88,12 +87,12 @@ func Update(cfg *config.TableConfig, object interface{}) string {
 	return sql
 }
 
-func Insert(cfg *config.TableConfig, object interface{}) string {
+func Insert(cfg *repository.TableConfig, object interface{}) string {
 	var tableColumnLabels []string
 	var tableColumnValues []string
 
 	t := reflect.Indirect(reflect.ValueOf(object))
-	fields, fieldsNotFound := dbHelper.GetTableColumnMap(cfg, reflect.TypeOf(object))
+	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, reflect.TypeOf(object))
 	for colName, colCfg := range cfg.TableColumns {
 		if colName == "id" {
 			continue
@@ -128,10 +127,10 @@ func Insert(cfg *config.TableConfig, object interface{}) string {
 	return sql
 }
 
-func SelectById(cfg *config.TableConfig, t reflect.Type, id interface{}) string {
+func SelectById(cfg *repository.TableConfig, t reflect.Type, id interface{}) string {
 	var tableColumns []string
 
-	fields, notFound := dbHelper.GetTableColumnMap(cfg, t)
+	fields, notFound := repository.GetTableColumnMap(cfg, t)
 	for _, colName := range cfg.TableColumnsArr {
 
 		colNotFound := false
@@ -173,7 +172,7 @@ func (f *F) ToString() string {
 	return strings.Join(strs, ", ")
 }
 
-func SelectBy(cfg *config.TableConfig, t reflect.Type, filters map[string]interface{}, limit int, offset int, asc bool) string {
+func SelectBy(cfg *repository.TableConfig, t reflect.Type, filters map[string]interface{}, limit int, offset int, asc bool) string {
 	var tableColumns []string
 	var tableFilters []string
 	var tableJoins []string
@@ -185,8 +184,8 @@ func SelectBy(cfg *config.TableConfig, t reflect.Type, filters map[string]interf
 	m0 := MAIN_TABLE_ALIAS
 
 	filtersNotEmpty := false
-	fields, fieldsNotFound := dbHelper.GetTableColumnMap(cfg, t)
-	relations, _ := dbHelper.GetTableRelationMap(cfg, t)
+	fields, fieldsNotFound := repository.GetTableColumnMap(cfg, t)
+	relations, _ := repository.GetTableRelationMap(cfg, t)
 
 	for _, colName := range cfg.TableColumnsArr {
 
@@ -251,7 +250,7 @@ func SelectBy(cfg *config.TableConfig, t reflect.Type, filters map[string]interf
 					relCfg := cfg.Relations[relation]
 					if relCfg.Type == "one_to_one" {
 						if fk, ok := relCfg.Params["foreign_key"]; ok {
-							relTargetCfg := config.CreateTableConfig(relCfg.Target)
+							relTargetCfg := repository.CreateTableConfig(relCfg.Target)
 
 							colCfg := relTargetCfg.TableColumns[colName]
 

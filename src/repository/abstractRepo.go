@@ -1,12 +1,10 @@
 package repository
 
 import (
-	"alex-shkadov/repository/src/repository/config"
-	"alex-shkadov/repository/src/repository/dbHelper"
-	"alex-shkadov/repository/src/repository/queryBuilder"
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/alex-shkadov/repository/src/repository/queryBuilder"
 	"reflect"
 )
 
@@ -19,12 +17,12 @@ type Repository interface {
 
 type AbstractRepo struct {
 	db          *sql.DB
-	config      *config.TableConfig
+	config      *TableConfig
 	reflectType reflect.Type
 	identityMap *identityMap
 }
 
-func NewAbstractRepo(db *sql.DB, config *config.TableConfig, reflectType reflect.Type, work *identityMap) *AbstractRepo {
+func NewAbstractRepo(db *sql.DB, config *TableConfig, reflectType reflect.Type, work *identityMap) *AbstractRepo {
 	return &AbstractRepo{db: db, config: config, reflectType: reflectType, identityMap: work}
 }
 
@@ -217,7 +215,7 @@ func (a *AbstractRepo) FindAll() ([]interface{}, error) {
 	return a.FindBy(filtersDummy, true)
 }
 
-func (a *AbstractRepo) fillRecordsData(cfg *config.TableConfig, rows *sql.Rows) ([]interface{}, error) {
+func (a *AbstractRepo) fillRecordsData(cfg *TableConfig, rows *sql.Rows) ([]interface{}, error) {
 	result := []interface{}{}
 
 	rows.Scan()
@@ -241,7 +239,7 @@ func (a *AbstractRepo) fillRecordsData(cfg *config.TableConfig, rows *sql.Rows) 
 	return result, nil
 }
 
-func (a *AbstractRepo) fillRecordData(object interface{}, cfg *config.TableConfig, row RowScanner) error {
+func (a *AbstractRepo) fillRecordData(object interface{}, cfg *TableConfig, row RowScanner) error {
 	err := a.fillRecordDataFields(object, cfg, row)
 	if err != nil {
 		return err
@@ -255,7 +253,7 @@ func (a *AbstractRepo) fillRecordData(object interface{}, cfg *config.TableConfi
 	return nil
 }
 
-func (a *AbstractRepo) fillRecordDataRelations(object interface{}, cfg *config.TableConfig, row RowScanner) error {
+func (a *AbstractRepo) fillRecordDataRelations(object interface{}, cfg *TableConfig, row RowScanner) error {
 
 	return nil
 	t := reflect.TypeOf(object)
@@ -266,7 +264,7 @@ func (a *AbstractRepo) fillRecordDataRelations(object interface{}, cfg *config.T
 
 	//fmt.Println("TTT2", t)
 
-	tableRelationFields, _ := dbHelper.GetTableRelationMap(cfg, t)
+	tableRelationFields, _ := GetTableRelationMap(cfg, t)
 
 	for relName, relCfg := range a.config.Relations {
 		classField, ok := t.FieldByName(tableRelationFields[relName])
@@ -288,7 +286,7 @@ func (a *AbstractRepo) fillRecordDataRelations(object interface{}, cfg *config.T
 	return nil
 }
 
-func (a *AbstractRepo) fillRecordDataFields(object interface{}, cfg *config.TableConfig, row RowScanner) error {
+func (a *AbstractRepo) fillRecordDataFields(object interface{}, cfg *TableConfig, row RowScanner) error {
 
 	t := reflect.TypeOf(object)
 	//fmt.Println("TTT1", t, object)
@@ -298,7 +296,7 @@ func (a *AbstractRepo) fillRecordDataFields(object interface{}, cfg *config.Tabl
 
 	//fmt.Println("TTT2", t)
 
-	tableColumnFields, _ := dbHelper.GetTableColumnMap(cfg, t)
+	tableColumnFields, _ := GetTableColumnMap(cfg, t)
 	fieldValuesArr := []interface{}{}
 	fieldValuesArrCallbacks := []func() (interface{}, string, string){}
 
