@@ -84,6 +84,25 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 		}
 	}
 
+	for relName, relCfg := range cfg.Relations {
+		if relCfg.Type == "one_to_one" || relCfg.Type == "many_to_one" {
+			if fk, ok := relCfg.Params["foreign_key"]; ok {
+				relValue := t.FieldByName(relName).Interface()
+				if relValue == nil {
+					updateExpr = append(updateExpr, fk.(string)+" = null")
+				} else {
+					far := reflect.Indirect(reflect.ValueOf(relValue))
+					farKey := far.FieldByName("ID").Int()
+					if farKey != 0 {
+						updateExpr = append(updateExpr, fk.(string)+" = "+strconv.Itoa(int(farKey)))
+					} else {
+						updateExpr = append(updateExpr, fk.(string)+" = null")
+					}
+				}
+			}
+		}
+	}
+
 	sql := "UPDATE \"" + cfg.TableName + "\" SET " + strings.Join(updateExpr, ", ") + " WHERE id = " + strconv.Itoa(int(pkVal))
 
 	return sql
