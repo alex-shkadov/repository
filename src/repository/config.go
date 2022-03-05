@@ -6,9 +6,10 @@ import (
 )
 
 type TableColumnConfig struct {
-	Nullable  bool
-	Type      string
-	FieldName string
+	Nullable   bool
+	ZeroToNull bool
+	Type       string
+	FieldName  string
 }
 
 type TableRelationConfig struct {
@@ -79,6 +80,12 @@ func CreateTableConfig(dir string, tableName string) *TableConfig {
 		for colName, cf := range colConfig.(map[interface{}]interface{}) {
 			configData := cf.(map[interface{}]interface{})
 			c := NewTableColumnConfig(configData["nullable"].(bool), configData["type"].(string))
+
+			if zn, ok := configData["zeroToNull"]; ok {
+				if zn.(bool) {
+					c.ZeroToNull = true
+				}
+			}
 
 			if val, ok := configData["fieldName"]; ok {
 				c.FieldName = val.(string)

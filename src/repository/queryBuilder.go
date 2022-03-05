@@ -18,7 +18,7 @@ type INExpression interface {
 type QueryBuilder struct {
 }
 
-func (qb *QueryBuilder) escapeValueForSQL(typeStr string, value interface{}, nullable bool) string {
+func (qb *QueryBuilder) escapeValueForSQL(typeStr string, value interface{}, nullable bool, zeroToNull bool) string {
 
 	switch typeStr {
 	case "string":
@@ -30,6 +30,15 @@ func (qb *QueryBuilder) escapeValueForSQL(typeStr string, value interface{}, nul
 		if value == nil && nullable {
 			return "null"
 		}
+
+		if zeroToNull && value == 0 {
+			if !nullable {
+				panic("Int value is converting to null, but nullable field param is not set")
+			}
+
+			return "null"
+		}
+
 		return fmt.Sprint(value)
 
 	case "bool":
@@ -76,7 +85,7 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 
 			classFieldValue := t.FieldByName(classField).Interface()
 
-			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
+			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable, colCfg.ZeroToNull)
 
 			tableColumnValues = append(tableColumnValues, classFieldValueStr)
 
@@ -141,7 +150,7 @@ func (qb *QueryBuilder) Insert(cfg *TableConfig, object interface{}) string {
 
 			classFieldValue := t.FieldByName(classField).Interface()
 
-			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable)
+			classFieldValueStr := qb.escapeValueForSQL(colCfg.Type, classFieldValue, colCfg.Nullable, colCfg.ZeroToNull)
 
 			tableColumnValues = append(tableColumnValues, classFieldValueStr)
 		}
@@ -243,8 +252,8 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 						array := arr.Interface().([2]string)
 
 						tableFilters = append(tableFilters, fmt.Sprintf("\""+m0+"\".\""+colName+"\" BETWEEN %s AND %s",
-							qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
-							qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
+							qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable, colCfg.ZeroToNull),
+							qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable, colCfg.ZeroToNull),
 						))
 					} else {
 						panic(fmt.Sprint("Некорректный массив в фильтрах: ", filterValue))
@@ -257,7 +266,7 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 						str := reflect.ValueOf(filterValue).MethodByName("ToString").Call([]reflect.Value{})
 						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+")")
 					} else {
-						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
+						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable, colCfg.ZeroToNull))
 					}
 
 				}
@@ -290,14 +299,14 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 									array := arr.Interface().([2]string)
 
 									tableFilters = append(tableFilters, fmt.Sprintf("\""+rel+"\".\""+colName+"\" BETWEEN %s AND %s",
-										qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable),
-										qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable),
+										qb.escapeValueForSQL(colCfg.Type, array[0], colCfg.Nullable, colCfg.ZeroToNull),
+										qb.escapeValueForSQL(colCfg.Type, array[1], colCfg.Nullable, colCfg.ZeroToNull),
 									))
 								} else {
 									panic(fmt.Sprint("Некорректный массив в фильтрах: ", filterValue))
 								}
 							} else {
-								tableFilters = append(tableFilters, "\""+rel+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable))
+								tableFilters = append(tableFilters, "\""+rel+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable, colCfg.ZeroToNull))
 							}
 
 							//fmt.Println(tableJoins)
