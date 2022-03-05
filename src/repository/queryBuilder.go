@@ -31,7 +31,7 @@ func (qb *QueryBuilder) escapeValueForSQL(typeStr string, value interface{}, nul
 			return "null"
 		}
 
-		if zeroToNull && value == 0 {
+		if zeroToNull && fmt.Sprint(value) == "0" {
 			if !nullable {
 				panic("Int value is converting to null, but nullable field param is not set")
 			}
