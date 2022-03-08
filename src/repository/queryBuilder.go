@@ -97,6 +97,10 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 		if relCfg.Type == "one_to_one" || relCfg.Type == "many_to_one" {
 			if fk, ok := relCfg.Params["foreign_key"]; ok {
 				relValue := t.FieldByName(relName)
+				if !relValue.IsValid() {
+					continue
+				}
+
 				if relValue.IsZero() {
 					updateExpr = append(updateExpr, fk.(string)+" = null")
 				} else {
