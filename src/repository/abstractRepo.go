@@ -183,6 +183,9 @@ func (a *AbstractRepo) FindOneBy(filters map[string]interface{}, asc bool) (inte
 
 	err := a.fillRecordData(object, a.config, fetchResult)
 	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, nil
+		}
 		return nil, err
 	}
 
