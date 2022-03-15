@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"reflect"
 )
 
@@ -114,7 +113,7 @@ func (a *AbstractRepo) Save(packet interface{}) (int64, error) {
 		v := reflect.ValueOf(packet)
 		v = reflect.Indirect(v)
 		packetId := v.FieldByName(pkFieldName).Interface()
-		fmt.Println("LAST N", lastInsertId)
+		//fmt.Println("LAST N", lastInsertId)
 		switch a.config.TableColumns[a.config.PK].Type {
 		case "int":
 			{
@@ -132,7 +131,7 @@ func (a *AbstractRepo) Save(packet interface{}) (int64, error) {
 			{
 				if packetId.(int32) == 0 {
 					v.FieldByName(pkFieldName).SetInt(lastInsertId)
-					fmt.Println("LAST N", lastInsertId)
+					//fmt.Println("LAST N", lastInsertId)
 				}
 			}
 		case "int8":
