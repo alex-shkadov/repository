@@ -10,9 +10,9 @@ import (
 
 const MAIN_TABLE_ALIAS = "m0_"
 
-type INExpressionInterface interface {
+type inExpressionInterface interface {
 	AddValue(interface{})
-	OrIsNull() bool
+	GetOrIsNull() bool
 	ToString() string
 }
 
@@ -248,11 +248,11 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 					}
 				} else {
 
-					inter := reflect.TypeOf((*INExpressionInterface)(nil)).Elem()
+					inter := reflect.TypeOf((*inExpressionInterface)(nil)).Elem()
 
 					if reflect.TypeOf(filterValue).Implements(inter) {
 						str := reflect.ValueOf(filterValue).MethodByName("ToString").Call([]reflect.Value{})
-						orIsNull := reflect.ValueOf(filterValue).MethodByName("OrIsNull").Call([]reflect.Value{})
+						orIsNull := reflect.ValueOf(filterValue).MethodByName("GetOrIsNull").Call([]reflect.Value{})
 						if orIsNull[0].Interface().(bool) {
 							tableFilters = append(tableFilters, "(\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+") OR \""+m0+"\".\""+colName+"\" IS NULL)")
 						} else {

@@ -1,4 +1,4 @@
-package expr
+package repository
 
 import (
 	"strconv"
@@ -12,6 +12,10 @@ type IN struct {
 
 func (f *IN) AddValue(value interface{}) {
 	f.Ids = append(f.Ids, value.(int64))
+}
+
+func (f *IN) GetOrIsNull() bool {
+	return f.OrIsNull
 }
 
 func (f *IN) ToString() string {
