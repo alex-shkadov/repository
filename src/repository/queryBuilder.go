@@ -10,8 +10,9 @@ import (
 
 const MAIN_TABLE_ALIAS = "m0_"
 
-type INExpression interface {
+type INExpressionInterface interface {
 	AddValue(interface{})
+	OrIsNull() bool
 	ToString() string
 }
 
@@ -194,23 +195,6 @@ func (qb *QueryBuilder) SelectById(cfg *TableConfig, t reflect.Type, id interfac
 	return sql
 }
 
-type F struct {
-	Ids []int64
-}
-
-func (f *F) AddValue(value interface{}) {
-	f.Ids = append(f.Ids, value.(int64))
-}
-
-func (f *F) ToString() string {
-	strs := []string{}
-	for _, i := range f.Ids {
-		strs = append(strs, strconv.Itoa(int(i)))
-	}
-
-	return strings.Join(strs, ", ")
-}
-
 func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[string]interface{}, limit int, offset int, asc bool) string {
 	var tableColumns []string
 	var tableFilters []string
@@ -264,11 +248,17 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 					}
 				} else {
 
-					inter := reflect.TypeOf((*INExpression)(nil)).Elem()
+					inter := reflect.TypeOf((*INExpressionInterface)(nil)).Elem()
 
 					if reflect.TypeOf(filterValue).Implements(inter) {
 						str := reflect.ValueOf(filterValue).MethodByName("ToString").Call([]reflect.Value{})
-						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+")")
+						orIsNull := reflect.ValueOf(filterValue).MethodByName("OrIsNull").Call([]reflect.Value{})
+						if orIsNull[0].Interface().(bool) {
+							tableFilters = append(tableFilters, "(\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+") OR \""+m0+"\".\""+colName+"\" IS NULL)")
+						} else {
+							tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+")")
+						}
+
 					} else {
 						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable, colCfg.ZeroToNull))
 					}
