@@ -258,7 +258,8 @@ func (qb *QueryBuilder) SelectBy(cfg *TableConfig, t reflect.Type, filters map[s
 						} else {
 							tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IN ("+fmt.Sprint(str[0])+")")
 						}
-
+					} else if reflect.TypeOf(filterValue).String() == "*repository.IsNull" {
+						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" IS NULL")
 					} else {
 						tableFilters = append(tableFilters, "\""+m0+"\".\""+colName+"\" = "+qb.escapeValueForSQL(colCfg.Type, filterValue, colCfg.Nullable, colCfg.ZeroToNull))
 					}

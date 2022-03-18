@@ -10,6 +10,8 @@ type IN struct {
 	OrIsNull bool
 }
 
+type IsNull struct{}
+
 func (f *IN) AddValue(value interface{}) {
 	f.Ids = append(f.Ids, value.(int64))
 }
