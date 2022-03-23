@@ -59,7 +59,7 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 	t := reflect.Indirect(reflect.ValueOf(object))
 	fields, fieldsNotFound := GetTableColumnMap(cfg, reflect.TypeOf(object))
 
-	updateExpr := []string{}
+	updateExpr := map[string]string{}
 
 	var pkVal int64
 
@@ -90,7 +90,7 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 
 			tableColumnValues = append(tableColumnValues, classFieldValueStr)
 
-			updateExpr = append(updateExpr, colName+" = "+classFieldValueStr)
+			updateExpr[colName] = colName + " = " + classFieldValueStr
 		}
 	}
 
@@ -103,17 +103,17 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 				}
 
 				if relValue.IsZero() {
-					updateExpr = append(updateExpr, fk.(string)+" = null")
+					updateExpr[fk.(string)] = fk.(string) + " = null"
 				} else {
 					if reflect.ValueOf(relValue).IsZero() {
-						updateExpr = append(updateExpr, fk.(string)+" = null")
+						updateExpr[fk.(string)] = fk.(string) + " = null"
 					} else {
 						far := reflect.Indirect(reflect.ValueOf(relValue))
 						if !far.IsZero() {
 							farKey := reflect.Indirect(reflect.ValueOf(relValue.Interface())).FieldByName("ID").Int()
-							updateExpr = append(updateExpr, fk.(string)+" = "+strconv.Itoa(int(farKey)))
+							updateExpr[fk.(string)] = fk.(string) + " = " + strconv.Itoa(int(farKey))
 						} else {
-							updateExpr = append(updateExpr, fk.(string)+" = null")
+							updateExpr[fk.(string)] = fk.(string) + " = null"
 						}
 					}
 
@@ -122,7 +122,12 @@ func (qb *QueryBuilder) Update(cfg *TableConfig, object interface{}) string {
 		}
 	}
 
-	sql := "UPDATE \"" + cfg.TableName + "\" SET " + strings.Join(updateExpr, ", ") + " WHERE id = " + strconv.Itoa(int(pkVal))
+	updates := []string{}
+	for _, expr := range updateExpr {
+		updates = append(updates, expr)
+	}
+
+	sql := "UPDATE \"" + cfg.TableName + "\" SET " + strings.Join(updates, ", ") + " WHERE id = " + strconv.Itoa(int(pkVal))
 
 	return sql
 }
